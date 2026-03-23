@@ -1,0 +1,77 @@
+{
+  "total_collisions": 4849276,
+  "total_injured": 2371029,
+  "total_killed": 11122,
+  "boroughs": {
+    "BROOKLYN": 1675118,
+    "QUEENS": 1340355,
+    "MANHATTAN": 933055,
+    "BRONX": 676882,
+    "STATEN ISLAND": 223866
+  },
+  "crashes_by_hour": {
+    "0": 181059,
+    "1": 89294,
+    "2": 66613,
+    "3": 58532,
+    "4": 66357,
+    "5": 69464,
+    "6": 107710,
+    "7": 161402,
+    "8": 265166,
+    "9": 239270,
+    "10": 224561,
+    "11": 239000,
+    "12": 258773,
+    "13": 274986,
+    "14": 323568,
+    "15": 318378,
+    "16": 351226,
+    "17": 338595,
+    "18": 294033,
+    "19": 241133,
+    "20": 200094,
+    "21": 176781,
+    "22": 162343,
+    "23": 140938
+  },
+  "injuries_by_type": {
+    "pedestrians_injured": 213407,
+    "cyclists_injured": 130343,
+    "motorists_injured": 2003917
+  },
+  "fatalities_by_type": {
+    "pedestrians_killed": 3798,
+    "cyclists_killed": 898,
+    "motorists_killed": 6289
+  },
+  "top_contributing_factors": {
+    "Driver Inattention/Distraction": 1500823,
+    "Following Too Closely": 548315,
+    "Failure to Yield Right-of-Way": 442234,
+    "Passing or Lane Usage Improper": 247312,
+    "Backing Unsafely": 233347,
+    "Other Vehicular": 196562,
+    "Unsafe Lane Changing": 195799,
+    "Passing Too Closely": 192800,
+    "Turning Improperly": 161817,
+    "Traffic Control Disregarded": 146867
+  },
+  "crashes_by_year": {
+    "2012": 11482,
+    "2013": 23476,
+    "2014": 24910,
+    "2015": 29638,
+    "2016": 611691,
+    "2017": 769075,
+    "2018": 759351,
+    "2019": 680190,
+    "2020": 321082,
+    "2021": 298367,
+    "2022": 282899,
+    "2023": 262578,
+    "2024": 239924,
+    "2025": 209186,
+    "2026": 35666
+  }
+}
