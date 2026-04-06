@@ -60,7 +60,7 @@ function App() {
   const pageSize = 6;
 
   // Device recommendation popup
-  const [showDevicePopup, setShowDevicePopup] = useState(false);
+  const [popupStep, setPopupStep] = useState(0);
   
   // filters:
   const [appliedFilters, setAppliedFilters] = useState({
@@ -251,10 +251,14 @@ function App() {
     }
   };
 
-  // Dismiss device popup and remember
+  // Dismiss device popup
   const dismissDevicePopup = () => {
-    setShowDevicePopup(false);
-    // localStorage.setItem('devicePopupShown', 'true'); // Commented out for testing
+    if (popupStep === 1) {
+      setPopupStep(2);
+    } else {
+      setPopupStep(0);
+      // Temporarily disabled for testing - localStorage.setItem('devicePopupShown', 'true');
+    }
   };
 
   // Toggle injured-only filter (mutually exclusive with killed-only)
@@ -423,14 +427,13 @@ function App() {
     fetchAllFiles();
   }, []);
 
-  // Device recommendation popup - show only once on mobile
+  // Device recommendation popup - show on every load for testing
   useEffect(() => {
     const hasSeenPopup = localStorage.getItem('devicePopupShown');
     const isMobile = window.innerWidth < 768;
     console.log('Popup check:', { hasSeenPopup, isMobile, width: window.innerWidth });
-    if (!hasSeenPopup) { // Temporarily show on all devices for testing
-      setShowDevicePopup(true);
-    }
+    // Temporarily show on all devices for testing - always show
+    setPopupStep(1);
   }, []);
 
   // options for filter UI (derived from raw data)
@@ -1754,11 +1757,39 @@ function appliedFiltersActive(filters) {
 
       <div className="section">
         <h3>Report Summary</h3>
+
         <p className="paragraph">
-          This comprehensive metadata report analyzes the complete NYC collision dataset, providing insights into crash patterns, contributing factors, and temporal trends. The data covers {fullDataReport.totalCollisions.toLocaleString()} collision records across all five boroughs, with detailed breakdowns by time, location, and severity.
+          This comprehensive data report analyzes the complete NYC collision dataset, providing insights into crash patterns, contributing factors, and temporal trends. The data covers {fullDataReport.totalCollisions.toLocaleString()} collision records across all five boroughs, with detailed breakdowns by time, location, and severity.
         </p>
+
         <p className="paragraph">
           Key findings include peak crash hours, borough-specific patterns, and the most common contributing factors leading to collisions. This analysis helps identify high-risk periods and areas for targeted safety interventions.
+        </p>
+
+        <p className="paragraph">
+          The dataset used in this report is derived from the original publicly available NYC Open Data sources. The data remains consistent with the original records.
+        </p>
+
+        <p className="paragraph">
+          <strong>Original Data Sources:</strong>
+          <br />
+          Motor Vehicle Collisions – Crashes:{" "}
+          <a
+            href="https://data.cityofnewyork.us/Public-Safety/Motor-Vehicle-Collisions-Crashes/h9gi-nx95"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            View Dataset
+          </a>
+          <br />
+          Motor Vehicle Collisions – Persons:{" "}
+          <a
+            href="https://data.cityofnewyork.us/Public-Safety/Motor-Vehicle-Collisions-Person/f55k-p6yu"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            View Dataset
+          </a>
         </p>
       </div>
     </div>
@@ -1766,7 +1797,7 @@ function appliedFiltersActive(filters) {
 )}
 
 {/* Device Recommendation Popup */}
-{showDevicePopup && (
+{popupStep > 0 && (
   <div className="device-popup-overlay" onClick={dismissDevicePopup}>
     <div className="device-popup" onClick={e => e.stopPropagation()}>
       <div className="device-popup-header">
@@ -1774,11 +1805,25 @@ function appliedFiltersActive(filters) {
         <button className="device-popup-close" onClick={dismissDevicePopup}>×</button>
       </div>
       <div className="device-popup-content">
-        <h3>Best Experience on Desktop</h3>
-        <p>For the optimal viewing experience of NYC Collision Studio, we recommend using a laptop, desktop, or tablet.</p>
-        <p>If you're on a phone, try rotating to landscape orientation for better data visualization.</p>
+        {popupStep === 1 ? (
+          <>
+            <h3>Best Experience on Desktop</h3>
+            <p>For the optimal viewing experience of NYC Collision Studio, we recommend using a laptop, desktop, or tablet.</p>
+            <p>If you're on a phone, try rotating to landscape orientation for better data visualization.</p>
+            <div className="popup-step-indicator">1/2</div>
+          </>
+        ) : (
+          <>
+            <h3>Data Sample Notice</h3>
+            <p>This snapshot displays only a sample of the collision data for demonstration purposes.</p>
+            <p>For the complete dataset and full analysis, please use the "Generate and download the Complete Dataset Report" button.</p>
+            <div className="popup-step-indicator">2/2</div>
+          </>
+        )}
         <div className="device-popup-actions">
-          <button className="control-btn primary" onClick={dismissDevicePopup}>Got it!</button>
+          <button className="control-btn primary" onClick={dismissDevicePopup}>
+            {popupStep === 1 ? 'Got it!' : 'done'}
+          </button>
         </div>
       </div>
     </div>
