@@ -1151,45 +1151,65 @@ function appliedFiltersActive(filters) {
       </header>
 
       <main className="content">
+        <section className="panel charts compact" style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%' }}>
+          <div className="panel-card" style={{ padding: '10px', marginBottom: '4px', background: 'linear-gradient(145deg, rgba(123, 97, 255, 0.08), rgba(0, 212, 255, 0.04))', border: '1px solid rgba(255, 255, 255, 0.08)', boxShadow: '0 12px 40px rgba(2,6,23,0.6)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '18px', alignItems: 'start' }}>
+              {/* Data Filtering Section */}
+              <div>
+                <h4 style={{ margin: '0 0 12px 0', fontSize: '15px', fontWeight: '500', color: '#dbeafe', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', paddingBottom: '6px' }}>
+                  Data Filtering
+                </h4>
+                <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: 'rgba(219, 234, 254, 0.6)', lineHeight: '1.4' }}>
+                  Narrow down the dataset to focus on specific criteria
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <button
+                    className={graphFilters.boroughs.length || graphFilters.factors.length || graphFilters.vehicleTypes.length || graphFilters.onStreets.length || graphFilters.years.length || graphFilters.injuredOnly || graphFilters.killedOnly ? "control-btn active" : "control-btn"}
+                    onClick={openGraphFilter}
+                    style={{ fontSize: '14px', padding: '12px 16px', minHeight: 'auto', lineHeight: '1.4', justifyContent: 'flex-start' }}
+                  >
+                    Advanced Filters
+                  </button>
 
-        
-        <section className="panel charts compact" style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginTop: '15px', flexWrap: 'wrap' }}>
-            <button
-              className={graphFilters.boroughs.length || graphFilters.factors.length || graphFilters.vehicleTypes.length || graphFilters.onStreets.length || graphFilters.years.length || graphFilters.injuredOnly || graphFilters.killedOnly ? "control-btn active" : "control-btn"}
-              onClick={openGraphFilter}
-              style={{ fontSize: '19px', padding: '4px 30px', minHeight: 'auto', lineHeight: '1.6' }}
-            >
-              Filter
-            </button>
+                  <button
+                    className={graphFilters.injuredOnly ? "control-btn active" : "control-btn"}
+                    onClick={toggleGraphInjuredOnly}
+                    style={{ fontSize: '14px', padding: '12px 16px', minHeight: 'auto', lineHeight: '1.4', justifyContent: 'flex-start' }}
+                  >
+                    Show Injuries Only
+                  </button>
 
-            <button
-              className={graphFilters.injuredOnly ? "control-btn active" : "control-btn"}
-              onClick={toggleGraphInjuredOnly}
-              style={{ fontSize: '16px', padding: '4px 20px', minHeight: 'auto', lineHeight: '1.6' }}
-            >
-              Injured Only
-            </button>
+                  <button
+                    className={graphFilters.killedOnly ? "control-btn active" : "control-btn"}
+                    onClick={toggleGraphKilledOnly}
+                    style={{ fontSize: '14px', padding: '12px 16px', minHeight: 'auto', lineHeight: '1.4', justifyContent: 'flex-start' }}
+                  >
+                    Show Fatalities Only
+                  </button>
+                </div>
+              </div>
 
-            <button
-              className={graphFilters.killedOnly ? "control-btn active" : "control-btn"}
-              onClick={toggleGraphKilledOnly}
-              style={{ fontSize: '16px', padding: '4px 20px', minHeight: 'auto', lineHeight: '1.6' }}
-            >
-              Fatalities Only
-            </button>
-
-            <button
-              className="control-btn primary"
-              onClick={handleGenerateFullDataReport}
-              disabled={isGeneratingFullReport}
-              style={{ fontSize: '16px', padding: '4px 20px', minHeight: 'auto', lineHeight: '1.6', marginLeft: '10px' }}
-            >
-              {isGeneratingFullReport ? "Generating..." : "Generate Report About Whole Data"}
-            </button>
+              {/* Report Generation Section */}
+              <div>
+                <h4 style={{ margin: '0 0 12px 0', fontSize: '15px', fontWeight: '500', color: '#dbeafe', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', paddingBottom: '6px' }}>
+                  Report Generation
+                </h4>
+                <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: 'rgba(219, 234, 254, 0.6)', lineHeight: '1.4' }}>
+                  Create detailed PDF reports from the complete dataset
+                </p>
+                <button
+                  className="control-btn primary"
+                  onClick={handleGenerateFullDataReport}
+                  disabled={isGeneratingFullReport}
+                  style={{ fontSize: '14px', padding: '14px 20px', minHeight: 'auto', lineHeight: '1.4', width: '100%', fontWeight: '500' }}
+                >
+                  {isGeneratingFullReport ? "Generating Report..." : "Generate and download the Complete Dataset Report"}
+                </button>
+              </div>
+            </div>
           </div>
           
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', width: '100%' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1px', width: '100%' }}>
             <div className="panel-card chart-small">
               <h4 className="panel-title">Borough Distribution crashes</h4>
               <div className="chart-container chart-container--borough">
