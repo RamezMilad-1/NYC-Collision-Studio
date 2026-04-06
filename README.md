@@ -1,13 +1,14 @@
 📊 NYC Motor Vehicle Collision Analysis
-This project presents a comprehensive analysis of motor vehicle collisions in New York City, with the aim of identifying key patterns, contributing factors, and temporal trends within the data.
 
-The work is based on multiple NYC Open Data sources, which were carefully prepared through a structured data engineering process. The datasets were cleaned individually, integrated using a common identifier (COLLISION_ID), and then further refined to ensure consistency and reliability after integration.
+  This project presents a comprehensive analysis of motor vehicle collisions in New York City, with the aim of identifying key patterns, contributing factors, and temporal trends within the data.
 
-Following data preparation, exploratory analysis and visualizations were developed to better understand the dataset and highlight meaningful insights. These analyses are in the accompanying notebook "Visualizing_FinalData.ipynb" included in this repository.
+  The work is based on multiple NYC Open Data sources, which were carefully prepared through a structured data engineering process. The datasets were cleaned individually, integrated using a common identifier (COLLISION_ID), and then further refined to ensure consistency and reliability after integration.
 
-To enhance accessibility and user interaction, a frontend web application was also developed. The website provides an interactive interface for exploring the data and visual insights in a clear and dynamic way.
+  Following data preparation, exploratory analysis and visualizations were developed to better understand the dataset and highlight meaningful insights. These analyses are in the accompanying notebook "Visualizing_FinalData.ipynb" included in this repository.
 
-Overall, this project demonstrates the end-to-end workflow of transforming raw, real-world data into structured insights and interactive visual representations.
+  To enhance accessibility and user interaction, a frontend web application was also developed. The website provides an interactive interface for exploring the data and visual insights in a clear and dynamic way.
+
+  Overall, this project demonstrates the end-to-end workflow of transforming raw, real-world data into structured insights and interactive visual representations.
 
 📂 Data Sources
 
