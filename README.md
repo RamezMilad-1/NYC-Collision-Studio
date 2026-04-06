@@ -6,7 +6,7 @@
 
   Following data preparation, exploratory analysis and visualizations were developed to better understand the dataset and highlight meaningful insights. These analyses are in the accompanying notebook "Visualizing_FinalData.ipynb" included in this repository.
 
-  To enhance accessibility and user interaction, a frontend web application was also developed. The website provides an interactive interface for exploring the data and visual insights in a clear and dynamic way.
+  To enhance accessibility and user interaction, a single-page web application was developed using JavaScript and React. The interface allows users to interact with the data and generate downloadable PDF reports in a clear and dynamic way.
 
   Overall, this project demonstrates the end-to-end workflow of transforming raw, real-world data into structured insights and interactive visual representations.
 
