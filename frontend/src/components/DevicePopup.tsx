@@ -20,7 +20,9 @@ export function DevicePopup({ step, onDismiss }: Props) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="device-popup-header">
-          <div className="device-icon" aria-hidden="true">💻</div>
+          <span className="device-icon" aria-hidden="true">
+            {step === 1 ? '🖥️' : '📊'}
+          </span>
           <button
             type="button"
             className="device-popup-close"
@@ -33,24 +35,30 @@ export function DevicePopup({ step, onDismiss }: Props) {
         <div className="device-popup-content">
           {step === 1 ? (
             <>
-              <h3 id="device-popup-title">Best Experience on Desktop</h3>
-              <p>For the optimal viewing experience of NYC Collision Studio, we recommend using a laptop, desktop, or tablet.</p>
-              <p>If you're on a phone, try rotating to landscape orientation for better data visualization.</p>
-              <div className="popup-step-indicator">1/2</div>
+              <h3 id="device-popup-title">Best on a bigger screen</h3>
+              <p>
+                NYC Collision Studio is designed for laptops and desktops — multi-column charts and
+                data tables breathe better with more room.
+              </p>
+              <p style={{ fontSize: 12.5, color: 'var(--text-4)' }}>
+                On mobile, try rotating to landscape for the data table.
+              </p>
             </>
           ) : (
             <>
-              <h3 id="device-popup-title">Data Sample Notice</h3>
-              <p>This snapshot displays only a sample of the collision data for demonstration purposes.</p>
-              <p>For the complete dataset and full analysis, please use the "Generate and download the Complete Dataset Report" button.</p>
-              <div className="popup-step-indicator">2/2</div>
+              <h3 id="device-popup-title">Sample data notice</h3>
+              <p>
+                The interactive dashboard uses a representative sample for performance. For
+                complete dataset analysis, click <strong>Full report</strong> in the top bar.
+              </p>
             </>
           )}
           <div className="device-popup-actions">
-            <button type="button" className="control-btn primary" onClick={onDismiss}>
-              {step === 1 ? 'Got it!' : 'done'}
+            <button type="button" className="btn btn--primary" onClick={onDismiss}>
+              {step === 1 ? 'Continue' : 'Got it'}
             </button>
           </div>
+          <div className="popup-step-indicator">Step {step} of 2</div>
         </div>
       </div>
     </div>

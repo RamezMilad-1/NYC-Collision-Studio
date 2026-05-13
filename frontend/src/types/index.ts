@@ -50,6 +50,17 @@ export interface HourBucket {
   collisions: number;
 }
 
+export interface YearBucket {
+  year: number;
+  crashes: number;
+}
+
+export interface VictimBreakdown {
+  pedestrians: number;
+  cyclists: number;
+  motorists: number;
+}
+
 export interface Summary {
   totalCollisions: number;
   totalInjured: number;
@@ -58,6 +69,9 @@ export interface Summary {
   personTypeBreakdown: NameValue[];
   topFactors: NameValue[];
   collisionsByHourData: HourBucket[];
+  crashesByYearData?: YearBucket[];
+  injured?: VictimBreakdown;
+  killed?: VictimBreakdown;
 }
 
 export interface FilterOptions {
@@ -82,6 +96,21 @@ export interface FullDataReport {
   topFactors: { factor: string; count: number }[];
   crashesByYearData: { year: number; crashes: number }[];
   isFullData: true;
+}
+
+export interface DatasetIndex {
+  all: Summary;
+  byBorough: Record<string, Summary>;
+  byYear: Record<string, Summary>;
+  byFactor: Record<string, Summary>;
+  byVehicleType: Record<string, Summary>;
+  joins: {
+    boroughYear: Record<string, Record<string, Summary>>;
+    boroughFactor: Record<string, Record<string, Summary>>;
+    yearFactor: Record<string, Record<string, Summary>>;
+    boroughVehicle: Record<string, Record<string, Summary>>;
+    yearVehicle: Record<string, Record<string, Summary>>;
+  };
 }
 
 export interface DatasetMetadata {

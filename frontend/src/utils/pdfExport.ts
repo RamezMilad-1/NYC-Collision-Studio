@@ -1,4 +1,7 @@
 // Lazily load html2pdf.js so it isn't pulled into the initial bundle.
+/** Added to the html2canvas document clone only (see App.css); never on the live DOM. */
+const PDF_EXPORT_CAPTURE_CLASS = 'pdf-export-capture';
+
 export async function exportElementToPDF(elementId: string, reportType: 'sample' | 'full') {
   const element = document.getElementById(elementId);
   if (!element) {
@@ -25,14 +28,17 @@ export async function exportElementToPDF(elementId: string, reportType: 'sample'
   const opt = {
     margin: [0.5, 0.5, 0.5, 0.5] as [number, number, number, number],
     filename: `nyc-collision-${reportType}-report-${new Date().toISOString().split('T')[0]}.pdf`,
-    image: { type: 'jpeg' as const, quality: 0.98 },
+    image: { type: 'png' as const },
     pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
     html2canvas: {
-      scale: 2,
+      scale: 2.5,
       useCORS: true,
       allowTaint: false,
       backgroundColor: '#ffffff',
       logging: false,
+      onclone: (clonedDoc: Document) => {
+        clonedDoc.getElementById(elementId)?.classList.add(PDF_EXPORT_CAPTURE_CLASS);
+      },
     },
     jsPDF: {
       unit: 'in' as const,

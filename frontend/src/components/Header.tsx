@@ -1,42 +1,79 @@
 import type { Summary } from '../types';
-import { StatsOverview } from './StatsOverview';
+import { CountUp } from './CountUp';
+import { Skeleton } from './Skeleton';
+import { HeroPulse } from './HeroPulse';
 
 interface Props {
   summary: Summary;
   loading: boolean;
+  yearsCovered: string;
+  topBorough: string | null;
+  peakHour: string | null;
+  showingFullData: boolean;
 }
 
-export function Header({ summary, loading }: Props) {
+export function Header({
+  summary,
+  loading,
+  yearsCovered,
+  topBorough,
+  peakHour,
+  showingFullData,
+}: Props) {
   return (
-    <header className="hero">
-      <div className="hero-inner">
-        <div className="logo-wrap">
-          <svg className="logo" viewBox="0 0 64 64" fill="none" aria-hidden="true">
-            <rect x="0" y="0" width="64" height="64" rx="12" fill="url(#g)" />
-            <path
-              d="M16 40 L28 24 L40 40"
-              stroke="#061226"
-              strokeWidth={3}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              fill="none"
-            />
-            <defs>
-              <linearGradient id="g" x1="0" x2="1">
-                <stop offset="0" stopColor="#7B61FF" />
-                <stop offset="1" stopColor="#00D4FF" />
-              </linearGradient>
-            </defs>
-          </svg>
-        </div>
-        <div className="hero-text">
-          <h1>NYC Collision Studio</h1>
-          <p className="subtitle">
-            A vibrant, interactive snapshot — explore collisions, victims, and contributing factors. (SAMPLE DATA)
-          </p>
+    <section className="hero shell fade-up">
+      <div
+        style={{
+          width: '100%',
+          boxSizing: 'border-box',
+          paddingInline: 'clamp(8px, 2vw, 20px)',
+        }}
+      >
+        <div className="hero-grid">
+          <div className="hero-content">
+            <span className="hero-eyebrow">NYC Open Data · Motor Vehicle Collisions</span>
+            <h1>
+              Mapping 15 years of <span className="hl">traffic collisions across NYC.</span>.
+            </h1>
+            <p className="hero-sub">
+              Explore more than a decade of NYC motor vehicle crashes
+              by borough, hour, contributing factor, and victim type.
+              Filter the dataset live, uncover high-risk patterns, and
+              export a full offline report.
+            </p>
+            <div className="hero-meta">
+              <span className={`meta-chip ${showingFullData ? 'meta-chip--accent' : ''}`}>
+                {showingFullData ? 'Full dataset' : 'Filtered view'} <strong>{yearsCovered}</strong>
+              </span>
+              <span className="meta-chip">
+                {showingFullData ? 'Crashes' : 'Crashes in view'}{' '}
+                <strong>
+                  {loading ? (
+                    <Skeleton width={56} height={12} />
+                  ) : (
+                    <CountUp value={summary.totalCollisions} />
+                  )}
+                </strong>
+              </span>
+              {topBorough ? (
+                <span className="meta-chip">
+                  Most affected <strong>{titleCase(topBorough)}</strong>
+                </span>
+              ) : null}
+              {peakHour ? (
+                <span className="meta-chip">
+                  Peak hour <strong>{peakHour}</strong>
+                </span>
+              ) : null}
+            </div>
+          </div>
+          <HeroPulse summary={summary} showingFullData={showingFullData} loading={loading} />
         </div>
       </div>
-      <StatsOverview summary={summary} loading={loading} />
-    </header>
+    </section>
   );
+}
+
+function titleCase(s: string): string {
+  return s.toLowerCase().replace(/\b([a-z])/g, (m) => m.toUpperCase());
 }

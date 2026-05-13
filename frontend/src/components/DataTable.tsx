@@ -47,6 +47,14 @@ function cellText(v: unknown): string {
   return String(v);
 }
 
+function humanizeColumn(c: string): string {
+  return c
+    .toLowerCase()
+    .replace(/_/g, ' ')
+    .replace(/\b([a-z])/g, (m) => m.toUpperCase())
+    .replace(/\bId\b/, 'ID');
+}
+
 export function DataTable({
   rows,
   loading,
@@ -62,90 +70,124 @@ export function DataTable({
   onNext,
 }: Props) {
   const columns = useMemo(() => deriveColumns(rows), [rows]);
-  const filtersBadge =
-    appliedFilters.boroughs.length || appliedFilters.factors.length ? 'control-btn active' : 'control-btn';
+  const filtersOn =
+    appliedFilters.boroughs.length > 0 ||
+    appliedFilters.factors.length > 0 ||
+    appliedFilters.vehicleTypes.length > 0 ||
+    appliedFilters.onStreets.length > 0 ||
+    appliedFilters.years.length > 0 ||
+    appliedFilters.injuredOnly ||
+    appliedFilters.killedOnly;
+
+  const start = rows.length === 0 ? 0 : offset + 1;
+  const end = Math.min(offset + pageSize, rows.length);
 
   return (
-    <section className="panel table-panel">
-      <div className="table-container">
-        <div className="table-wrap">
-          <h3 className="panel-title">Data preview (first rows)</h3>
-          <div className="table-controls" role="toolbar" aria-label="Data table controls">
-            <button type="button" className={filtersBadge} onClick={onOpenFilter}>
-              Filter
-            </button>
-            <button
-              type="button"
-              className={searchMode ? 'control-btn active' : 'control-btn'}
-              aria-pressed={searchMode}
-              onClick={onToggleSearch}
-            >
-              Search
-            </button>
-            {searchMode && (
-              <input
-                className="search-input"
-                aria-label="Search rows"
-                placeholder="Search rows (use commas to search multiple terms, e.g. bronx, sedan)…"
-                value={searchQuery}
-                onChange={(e) => onSearchChange(e.target.value)}
-              />
-            )}
-          </div>
-
-          <div className="table-scroll">
-            {loading ? (
-              <TableSkeleton rows={pageSize} cols={Math.max(columns.length || 8, 8)} />
-            ) : (
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    {columns.map((col) => (
-                      <th key={col} scope="col">
-                        {col}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.slice(offset, offset + pageSize).map((r, i) => (
-                    <tr key={(r?.CRASH_ID as string | number | undefined) ?? offset + i}>
-                      {columns.map((col) => (
-                        <td key={col}>{cellText(r?.[col])}</td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-          <div className="table-note">
-            Showing up to {pageSize} rows from the loaded dataset. ({rows.length} rows match filters)
-          </div>
+    <section className="table-card">
+      <div className="table-header">
+        <div>
+          <h3 className="table-title">
+            Crash records
+            <span className="table-title-sub">
+              {rows.length.toLocaleString()} match{rows.length === 1 ? '' : 'es'}
+            </span>
+          </h3>
+        </div>
+        <div className="table-tools" role="toolbar" aria-label="Data table controls">
+          <button
+            type="button"
+            className={`btn ${filtersOn ? 'btn--active' : ''}`}
+            onClick={onOpenFilter}
+          >
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M4 5h16M7 12h10m-7 7h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+            Filter
+          </button>
+          <button
+            type="button"
+            className={`btn ${searchMode ? 'btn--active' : ''}`}
+            aria-pressed={searchMode}
+            onClick={onToggleSearch}
+          >
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="11" cy="11" r="6" stroke="currentColor" strokeWidth="2" />
+              <path d="m20 20-3.5-3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+            Search
+          </button>
+          {searchMode && (
+            <input
+              className="search-input"
+              aria-label="Search rows"
+              placeholder="Search rows — e.g. brooklyn 2022 pedestrian"
+              value={searchQuery}
+              onChange={(e) => onSearchChange(e.target.value)}
+              autoFocus
+            />
+          )}
         </div>
       </div>
 
-      <div className="table-pager" aria-label="Table pager">
-        <button
-          type="button"
-          className="pager-btn"
-          onClick={onPrev}
-          disabled={offset === 0}
-          title="Previous rows"
-          aria-label="Previous page"
-        >
-          ▲
-        </button>
-        <button
-          type="button"
-          className="pager-btn"
-          onClick={onNext}
-          disabled={offset + pageSize >= rows.length}
-          title="Next rows"
-          aria-label="Next page"
-        >
-          ▼
-        </button>
+      <div className="table-scroll">
+        {loading ? (
+          <TableSkeleton rows={pageSize} cols={Math.max(columns.length || 8, 8)} />
+        ) : (
+          <table className="data-table">
+            <thead>
+              <tr>
+                {columns.map((col) => (
+                  <th key={col} scope="col">
+                    {humanizeColumn(col)}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.slice(offset, offset + pageSize).map((r, i) => (
+                <tr key={(r?.CRASH_ID as string | number | undefined) ?? offset + i}>
+                  {columns.map((col) => (
+                    <td key={col}>{cellText(r?.[col])}</td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      <div className="table-footer">
+        <div className="table-foot-note">
+          Showing <strong style={{ color: 'var(--text-1)' }}>{start.toLocaleString()}</strong>–
+          <strong style={{ color: 'var(--text-1)' }}>{end.toLocaleString()}</strong> of{' '}
+          <strong style={{ color: 'var(--text-1)' }}>{rows.length.toLocaleString()}</strong>
+        </div>
+        <div className="pager">
+          <button
+            type="button"
+            className="pager-btn"
+            onClick={onPrev}
+            disabled={offset === 0}
+            title="Previous page"
+            aria-label="Previous page"
+          >
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M15 6 9 12l6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            className="pager-btn"
+            onClick={onNext}
+            disabled={offset + pageSize >= rows.length}
+            title="Next page"
+            aria-label="Next page"
+          >
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="m9 6 6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        </div>
       </div>
     </section>
   );

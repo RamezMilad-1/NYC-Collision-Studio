@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "precompute": "node scripts/precompute-aggregations.mjs",
+    "build-index": "node scripts/generate-dataset-index.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

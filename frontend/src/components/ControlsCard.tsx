@@ -19,91 +19,79 @@ export function ControlsCard({
   generatingFullReport,
 }: Props) {
   const active = filtersActive(graphFilters);
-  return (
-    <div
-      className="panel-card"
-      style={{
-        padding: '10px',
-        marginBottom: '4px',
-        background: 'linear-gradient(145deg, rgba(123, 97, 255, 0.08), rgba(0, 212, 255, 0.04))',
-        border: '1px solid rgba(255, 255, 255, 0.08)',
-        boxShadow: '0 12px 40px rgba(2,6,23,0.6)',
-      }}
-    >
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '18px', alignItems: 'start' }}>
-        <div>
-          <h4
-            style={{
-              margin: '0 0 12px 0',
-              fontSize: '15px',
-              fontWeight: 500,
-              color: '#dbeafe',
-              borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-              paddingBottom: '6px',
-            }}
-          >
-            Data Filtering
-          </h4>
-          <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: 'rgba(219, 234, 254, 0.6)', lineHeight: 1.4 }}>
-            Narrow down the dataset to focus on specific criteria
-          </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <button
-              type="button"
-              className={active ? 'control-btn active' : 'control-btn'}
-              onClick={onOpenGraphFilter}
-              style={{ fontSize: '14px', padding: '12px 16px', minHeight: 'auto', lineHeight: 1.4, justifyContent: 'flex-start' }}
-            >
-              Advanced Filters
-            </button>
-            <button
-              type="button"
-              className={graphFilters.injuredOnly ? 'control-btn active' : 'control-btn'}
-              aria-pressed={graphFilters.injuredOnly}
-              onClick={onToggleGraphInjured}
-              style={{ fontSize: '14px', padding: '12px 16px', minHeight: 'auto', lineHeight: 1.4, justifyContent: 'flex-start' }}
-            >
-              Show Injuries Only
-            </button>
-            <button
-              type="button"
-              className={graphFilters.killedOnly ? 'control-btn active' : 'control-btn'}
-              aria-pressed={graphFilters.killedOnly}
-              onClick={onToggleGraphKilled}
-              style={{ fontSize: '14px', padding: '12px 16px', minHeight: 'auto', lineHeight: 1.4, justifyContent: 'flex-start' }}
-            >
-              Show Fatalities Only
-            </button>
-          </div>
-        </div>
+  const activeCount =
+    graphFilters.boroughs.length +
+    graphFilters.factors.length +
+    graphFilters.vehicleTypes.length +
+    graphFilters.onStreets.length +
+    graphFilters.years.length +
+    (graphFilters.injuredOnly ? 1 : 0) +
+    (graphFilters.killedOnly ? 1 : 0);
 
-        <div>
-          <h4
-            style={{
-              margin: '0 0 12px 0',
-              fontSize: '15px',
-              fontWeight: 500,
-              color: '#dbeafe',
-              borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-              paddingBottom: '6px',
-            }}
-          >
-            Report Generation
-          </h4>
-          <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: 'rgba(219, 234, 254, 0.6)', lineHeight: 1.4 }}>
-            Create detailed PDF reports from the complete dataset
-          </p>
-          <button
-            type="button"
-            className="control-btn primary"
-            onClick={onGenerateFullReport}
-            disabled={generatingFullReport}
-            aria-busy={generatingFullReport}
-            style={{ fontSize: '14px', padding: '14px 20px', minHeight: 'auto', lineHeight: 1.4, width: '100%', fontWeight: 500 }}
-          >
-            {generatingFullReport ? 'Generating Report...' : 'Generate and download the Complete Dataset Report'}
-          </button>
-        </div>
+  return (
+    <div className="toolbar">
+      <div className="toolbar-group">
+        <span className="toolbar-label">View</span>
+        <button
+          type="button"
+          className={`btn ${active ? 'btn--active' : ''}`}
+          onClick={onOpenGraphFilter}
+          aria-haspopup="dialog"
+        >
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M4 5h16M7 12h10m-7 7h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+          Filters
+          {activeCount > 0 ? (
+            <span
+              style={{
+                background: 'var(--accent)',
+                color: '#1a0606',
+                fontWeight: 700,
+                fontSize: 10.5,
+                padding: '1px 6px',
+                borderRadius: 999,
+                marginLeft: 2,
+                lineHeight: 1.4,
+              }}
+            >
+              {activeCount}
+            </span>
+          ) : null}
+        </button>
+        <button
+          type="button"
+          className={`btn ${graphFilters.injuredOnly ? 'btn--active' : ''}`}
+          aria-pressed={graphFilters.injuredOnly}
+          onClick={onToggleGraphInjured}
+        >
+          Injuries only
+        </button>
+        <button
+          type="button"
+          className={`btn ${graphFilters.killedOnly ? 'btn--active' : ''}`}
+          aria-pressed={graphFilters.killedOnly}
+          onClick={onToggleGraphKilled}
+        >
+          Fatalities only
+        </button>
+      </div>
+
+      <div className="toolbar-group">
+        <button
+          type="button"
+          className="btn btn--primary"
+          onClick={onGenerateFullReport}
+          disabled={generatingFullReport}
+          aria-busy={generatingFullReport}
+        >
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-6-6Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+            <path d="M14 3v6h6" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+            <path d="M9 14h6M9 17h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+          {generatingFullReport ? 'Generating…' : 'Full dataset report'}
+        </button>
       </div>
     </div>
   );

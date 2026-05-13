@@ -26,43 +26,40 @@ export function FilterPanel({
 }: Props) {
   const ref = useFocusTrap<HTMLDivElement>(open, onCancel);
   if (!open) return null;
-  const overlayClass =
-    variant === 'default' ? 'filter-overlay filter-overlay--top' : 'filter-overlay';
-  const panelClass = variant === 'default' ? 'filter-panel' : 'filter-panel filter-panel--charts';
-  const headerClass =
-    variant === 'default'
-      ? 'filter-panel-header'
-      : 'filter-panel-header filter-panel-header--charts';
-  const bodyClass =
-    variant === 'default' ? 'filter-panel-body' : 'filter-panel-body filter-panel-body--charts';
+  const subtitle =
+    variant === 'charts'
+      ? 'Choose what flows into the charts above. Combine boroughs, factors, vehicles, streets and years.'
+      : 'Narrow the data preview below. Filters apply only to the table.';
 
   return (
-    <div className={overlayClass} onClick={onCancel}>
+    <div className="modal-overlay" onClick={onCancel}>
       <div
         ref={ref}
-        className={panelClass}
+        className="modal-panel"
         role="dialog"
         aria-modal="true"
         aria-label={title}
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className={headerClass}>
-          {variant === 'default' ? null : <h3>{title}</h3>}
-          <div className="filter-actions filter-actions--top-bar">
-            <button type="button" className="control-btn" onClick={onCancel}>
+        <div className="modal-header">
+          <div>
+            <h3 className="modal-title">{title}</h3>
+            <p className="modal-subtitle">{subtitle}</p>
+          </div>
+          <div className="modal-actions">
+            <button type="button" className="btn btn--ghost" onClick={onCancel}>
               Cancel
             </button>
-            <button type="button" className="control-btn" onClick={onClear}>
-              Clear
+            <button type="button" className="btn" onClick={onClear}>
+              Clear all
             </button>
-            <button type="button" className="control-btn primary" onClick={onApply}>
+            <button type="button" className="btn btn--primary" onClick={onApply}>
               Apply
             </button>
           </div>
-          {variant === 'default' ? <h3>{title}</h3> : null}
         </div>
-        <div className={bodyClass}>
+        <div className="modal-body">
           <div className="filter-grid">
             <FilterGroup
               label="Boroughs"
@@ -110,8 +107,21 @@ interface GroupProps {
 
 function FilterGroup({ label, items, selected, onToggle }: GroupProps) {
   return (
-    <div>
-      <strong>{label}</strong>
+    <div className="filter-group">
+      <span className="filter-group-label">
+        {label}
+        {selected.length > 0 ? (
+          <span
+            style={{
+              marginLeft: 8,
+              color: 'var(--accent)',
+              fontVariantNumeric: 'tabular-nums',
+            }}
+          >
+            ({selected.length})
+          </span>
+        ) : null}
+      </span>
       <div className="filter-list" role="group" aria-label={label}>
         {items.map((item) => (
           <label key={item} className="filter-item">
@@ -119,8 +129,8 @@ function FilterGroup({ label, items, selected, onToggle }: GroupProps) {
               type="checkbox"
               checked={selected.includes(item)}
               onChange={() => onToggle(item)}
-            />{' '}
-            {item}
+            />
+            <span>{item}</span>
           </label>
         ))}
       </div>

@@ -1,1 +1,24 @@
+# Source CSVs — too large for git
 *.csv
+
+# Large sample JSONL files (one part is ~90MB, right at GitHub's 100MB limit).
+# The dashboard works without them: the main view is driven by
+# dataset_metadata.json (full-NYC stats, 1.6KB) and the data table reads
+# df_records_preview.jsonl (~6MB) — both are committed.
+#
+# To regenerate locally for development:
+#   cd frontend/public/data
+#   awk 'NR % 15 == 1' df_clean_integrated_sample_part1.jsonl > df_records_preview.jsonl
+frontend/public/data/df_clean_integrated_sample_part*.jsonl
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# Python / notebook artifacts
+.ipynb_checkpoints/
+__pycache__/
+*.pyc
