@@ -28,16 +28,53 @@ export async function exportElementToPDF(elementId: string, reportType: 'sample'
   const opt = {
     margin: [0.5, 0.5, 0.5, 0.5] as [number, number, number, number],
     filename: `nyc-collision-${reportType}-report-${new Date().toISOString().split('T')[0]}.pdf`,
-    image: { type: 'png' as const },
+    // JPEG at high quality keeps text + chart edges crisp while
+    // producing PDFs ~10× smaller than the equivalent PNG embed.
+    image: { type: 'jpeg' as const, quality: 0.95 },
     pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
     html2canvas: {
-      scale: 2.5,
+      // 2× is HiDPI-sharp; higher just inflates file size without visible gain
+      // once jsPDF compresses the embedded JPEG.
+      scale: 2,
       useCORS: true,
       allowTaint: false,
       backgroundColor: '#ffffff',
       logging: false,
+      letterRendering: true,
+      imageTimeout: 0,
       onclone: (clonedDoc: Document) => {
-        clonedDoc.getElementById(elementId)?.classList.add(PDF_EXPORT_CAPTURE_CLASS);
+        // Force light theme in the clone so every var(--…) resolves to
+        // a print-friendly value, regardless of the user's live theme.
+        clonedDoc.documentElement.setAttribute('data-theme', 'light');
+
+        const target = clonedDoc.getElementById(elementId);
+        if (target) target.classList.add(PDF_EXPORT_CAPTURE_CLASS);
+
+        // Strip the atmospheric / glass effects so html2canvas paints
+        // crisp text on a flat white surface instead of a hazy one.
+        const sanitizer = clonedDoc.createElement('style');
+        sanitizer.textContent = `
+          html, body { background: #ffffff !important; }
+          .app::before, .app::after { display: none !important; }
+          #${elementId} {
+            outline: none !important;
+            image-rendering: -webkit-optimize-contrast;
+          }
+          #${elementId},
+          #${elementId} *:not(.recharts-wrapper):not(.recharts-wrapper *) {
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+            box-shadow: none !important;
+            text-shadow: none !important;
+            filter: none !important;
+            transition: none !important;
+            animation: none !important;
+            text-rendering: geometricPrecision !important;
+            -webkit-font-smoothing: antialiased !important;
+            -moz-osx-font-smoothing: grayscale !important;
+          }
+        `;
+        clonedDoc.head.appendChild(sanitizer);
       },
     },
     jsPDF: {
@@ -45,6 +82,7 @@ export async function exportElementToPDF(elementId: string, reportType: 'sample'
       format: 'a4' as const,
       orientation: 'landscape' as const,
       compress: true,
+      precision: 16,
     },
   };
 
