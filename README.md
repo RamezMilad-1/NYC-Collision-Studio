@@ -21,20 +21,24 @@ Interactive exploration of 15 years of NYC motor vehicle crashes — from a mult
 
 ## What it is
 
-An end-to-end data project. The upstream notebooks ingest two NYC Open Data sources (Crashes + Persons), reconcile them on `COLLISION_ID`, clean and impute geographic/contextual fields, and emit a fully-integrated dataset together with pre-computed aggregations and a multi-dimensional lookup index. The frontend is a glass-morphism React 19 dashboard that consumes those artefacts to deliver instant filtering across boroughs, years, contributing factors and vehicle types, plus a one-click full-dataset PDF report.
+A full data project, taken from raw city records all the way to a polished web dashboard.
+
+The Python notebooks pull two NYC Open Data files (Crashes and Persons), match them up by their shared `COLLISION_ID`, fill in missing values for fields like borough and street, and produce one clean combined dataset along with fast-lookup summary files.
+
+The frontend is a modern, glass-style React 19 dashboard that reads those files and lets anyone filter crashes by borough, year, contributing factor or vehicle type in real time — and download the results as a clean PDF report with one click.
 
 ---
 
 ## Features
 
-- **Two independent filter scopes** — chart filters and table filters are tracked separately and URL-synced, so a view is shareable.
-- **Pre-computed index, instant queries** — single- and two-dimensional filter combinations resolve in O(1) against a pre-built JSON index instead of scanning rows.
-- **Sample-to-full scaling** — when a filter combination falls outside the index, the loaded sample is aggregated and scaled to honest full-dataset magnitudes.
+- **Two separate filter sets** — chart filters and table filters are tracked independently, and both are saved into the URL so any view can be shared by copying the link.
+- **Pre-built index for instant results** — common filter combinations are looked up directly in a prepared index instead of scanning through millions of rows, so every chart updates immediately.
+- **Smart scaling for rare filters** — when a filter combination isn't in the index, results from a representative sample are scaled up to reflect the true size of the full dataset.
 - **Search mode** — free-text queries (e.g. *"Brooklyn 2022 pedestrian"*) filter the record explorer in real time.
-- **Downloadable PDF** — full-dataset report rasterized at high DPI with print-tuned typography, colors, and chart styling.
-- **Light + dark themes** — soft-glass design system driven by CSS custom properties; both modes share one set of components.
-- **Accessible UI** — focus-trapped modals, keyboard-only navigation, reduced-motion support, ARIA live regions for async state.
-- **Resilient loading** — lazy-loaded modals, code-split routes, sample preview streams while the full index loads.
+- **Downloadable PDF** — a high-resolution report of the entire dataset, with print-friendly fonts, colors and chart styling.
+- **Light and dark modes** — built on a single soft-glass design system, so both themes share the same components and look consistent.
+- **Accessible interface** — full keyboard navigation, popups that trap focus for screen-reader users, respect for reduced-motion settings, and live announcements while data is loading.
+- **Fast initial load** — heavier parts of the app load on demand, and a quick sample appears first while the full dataset loads in the background.
 
 ---
 
@@ -55,17 +59,17 @@ NYC-Collision-Studio/
 
 ### Data engineering pipeline
 
-1. **Clean** — independently clean Crashes and Persons datasets: drop columns >80 % missing, impute the rest, standardize dates/strings/categories.
-2. **Geographic imputation** — fill missing boroughs and street names via mode-based rules, nearest-neighbor inference, and KNN over coordinates.
-3. **Integrate** — merge on `COLLISION_ID` and run a post-merge cleaning pass to resolve newly-introduced inconsistencies.
-4. **Emit artefacts** — `build_website_data.ipynb` reads `df_clean_integrated.csv` (dedupe on `COLLISION_ID`) and writes a single `frontend/public/data/nyc_data.json`. That file contains the full-NYC summary, every pre-aggregated 1- and 2-dimensional filter slice, filter dropdown values, and a 10 000-row sample for the record-level explorer. The website reads only this one file.
+1. **Clean** — each dataset (Crashes and Persons) is cleaned on its own: columns that are mostly empty are dropped, the rest are filled in, and dates, text and categories are standardized.
+2. **Fill in missing locations** — missing boroughs and street names are recovered using simple rules, lookups from nearby records, and a K-Nearest-Neighbors model over the latitude/longitude coordinates.
+3. **Combine** — the two cleaned datasets are merged on the shared `COLLISION_ID`, then cleaned again to fix any new inconsistencies introduced by the merge.
+4. **Build the website's data file** — `build_website_data.ipynb` takes the merged dataset and produces a single `frontend/public/data/nyc_data.json`. That one file holds the citywide summary, every pre-calculated filter result, the dropdown options, and a 10,000-row sample for the record explorer. The whole website reads from just this file.
 
 ### Frontend highlights
 
-- **Indexed lookups** — `lookupIndexed()` in `App.tsx` resolves any 0-, 1- or 2-dimensional filter combination against `byBorough`, `byYear`, `byFactor`, `byVehicleType`, `byOnStreet` and seven pairwise joins, returning exact full-dataset summaries without touching the sample rows.
-- **Severity reprojection** — when `Fatalities only` or `Injuries only` is on, `severityIndexSummary()` reads `totalKilled` / `totalInjured` straight from the matching index cell, so the chart numbers are exact per year / per borough instead of scaled approximations.
-- **Glass-morphism design system** — every surface (cards, toolbars, modals, KPI tiles) shares one rule built from CSS custom properties and `backdrop-filter`, so theming and dark-mode require no per-component code.
-- **PDF clarity pipeline** — the export forces light theme on the html2canvas document clone, strips backdrop/blur/shadow effects, raises capture scale to `min(devicePixelRatio×2, 3.5)`, disables jsPDF compression, and applies a dedicated `.pdf-export-capture` stylesheet for high-contrast print typography.
+- **Instant lookups** — `lookupIndexed()` in `App.tsx` answers any filter combination (one or two filters at a time) by reading directly from the pre-built index, returning exact citywide numbers without ever scanning raw rows.
+- **Exact fatality and injury counts** — when "Fatalities only" or "Injuries only" is selected, `severityIndexSummary()` pulls `totalKilled` / `totalInjured` straight from the matching index cell, so each chart shows true per-year and per-borough totals instead of estimates.
+- **One design system, two themes** — every surface (cards, toolbars, popups, KPI tiles) follows one shared style rule based on CSS variables and a frosted-glass effect, so switching to dark mode needs no per-component code.
+- **Sharp PDF export** — the export forces light mode on the rendering snapshot, removes blur and shadow effects, captures at high resolution, turns off PDF compression, and applies a dedicated print stylesheet for crisp text and colors.
 
 ---
 
