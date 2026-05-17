@@ -6,6 +6,7 @@ interface Props {
   onOpenGraphFilter: () => void;
   onToggleGraphInjured: () => void;
   onToggleGraphKilled: () => void;
+  onClearFilters: () => void;
   onGenerateFullReport: () => void;
   generatingFullReport: boolean;
 }
@@ -15,6 +16,7 @@ export function ControlsCard({
   onOpenGraphFilter,
   onToggleGraphInjured,
   onToggleGraphKilled,
+  onClearFilters,
   onGenerateFullReport,
   generatingFullReport,
 }: Props) {
@@ -74,6 +76,15 @@ export function ControlsCard({
           onClick={onToggleGraphKilled}
         >
           Fatalities only
+        </button>
+        <button
+          type="button"
+          className="btn"
+          onClick={onClearFilters}
+          disabled={!active}
+          aria-disabled={!active}
+        >
+          Clear filters
         </button>
       </div>
 

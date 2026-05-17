@@ -104,13 +104,26 @@ export interface DatasetIndex {
   byYear: Record<string, Summary>;
   byFactor: Record<string, Summary>;
   byVehicleType: Record<string, Summary>;
+  byOnStreet: Record<string, Summary>;
   joins: {
     boroughYear: Record<string, Record<string, Summary>>;
     boroughFactor: Record<string, Record<string, Summary>>;
     yearFactor: Record<string, Record<string, Summary>>;
     boroughVehicle: Record<string, Record<string, Summary>>;
     yearVehicle: Record<string, Record<string, Summary>>;
+    boroughOnStreet: Record<string, Record<string, Summary>>;
+    yearOnStreet: Record<string, Record<string, Summary>>;
   };
+}
+
+/** The single JSON blob written by build_website_data.ipynb. */
+export interface NycDataFile {
+  version: number;
+  generatedAt: string;
+  datasetMetadata: DatasetMetadata;
+  datasetIndex: DatasetIndex;
+  filterOptions: FilterOptions;
+  sampleRows: CollisionRow[];
 }
 
 export interface DatasetMetadata {

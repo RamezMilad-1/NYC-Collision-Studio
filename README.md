@@ -58,12 +58,12 @@ NYC-Collision-Studio/
 1. **Clean** — independently clean Crashes and Persons datasets: drop columns >80 % missing, impute the rest, standardize dates/strings/categories.
 2. **Geographic imputation** — fill missing boroughs and street names via mode-based rules, nearest-neighbor inference, and KNN over coordinates.
 3. **Integrate** — merge on `COLLISION_ID` and run a post-merge cleaning pass to resolve newly-introduced inconsistencies.
-4. **Emit artefacts** — produce the final clean dataset, a `dataset_metadata.json` summary, a record-level JSONL preview for the explorer, and a `dataset_index.json` that pre-aggregates the most common 1- and 2-dimensional slices used by the UI.
+4. **Emit artefacts** — `build_website_data.ipynb` reads `df_clean_integrated.csv` (dedupe on `COLLISION_ID`) and writes a single `frontend/public/data/nyc_data.json`. That file contains the full-NYC summary, every pre-aggregated 1- and 2-dimensional filter slice, filter dropdown values, and a 10 000-row sample for the record-level explorer. The website reads only this one file.
 
 ### Frontend highlights
 
-- **Indexed lookups** — `lookupIndexed()` in `App.tsx` resolves any 0-, 1- or 2-dimensional filter combination against `byBorough`, `byYear`, `byFactor`, `byVehicleType` and four pairwise joins, returning exact full-dataset summaries without touching the sample rows.
-- **Honest extrapolation** — filters outside the index path fall back to a scaled aggregation: sample counts × (full ÷ sample) — orders-of-magnitude correct.
+- **Indexed lookups** — `lookupIndexed()` in `App.tsx` resolves any 0-, 1- or 2-dimensional filter combination against `byBorough`, `byYear`, `byFactor`, `byVehicleType`, `byOnStreet` and seven pairwise joins, returning exact full-dataset summaries without touching the sample rows.
+- **Severity reprojection** — when `Fatalities only` or `Injuries only` is on, `severityIndexSummary()` reads `totalKilled` / `totalInjured` straight from the matching index cell, so the chart numbers are exact per year / per borough instead of scaled approximations.
 - **Glass-morphism design system** — every surface (cards, toolbars, modals, KPI tiles) shares one rule built from CSS custom properties and `backdrop-filter`, so theming and dark-mode require no per-component code.
 - **PDF clarity pipeline** — the export forces light theme on the html2canvas document clone, strips backdrop/blur/shadow effects, raises capture scale to `min(devicePixelRatio×2, 3.5)`, disables jsPDF compression, and applies a dedicated `.pdf-export-capture` stylesheet for high-contrast print typography.
 

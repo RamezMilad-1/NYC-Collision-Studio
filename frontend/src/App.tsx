@@ -2,7 +2,6 @@ import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react
 
 import type {
   DatasetIndex,
-  DatasetMetadata,
   Filters,
   FilterOptions,
   FullDataReport,
@@ -15,7 +14,7 @@ import { useCollisionData } from './hooks/useCollisionData';
 import { usePagination } from './hooks/usePagination';
 import { readFiltersFromUrl, useSyncFiltersToUrl } from './hooks/useUrlFilters';
 
-import { addSummary, aggregateRows, EMPTY_SUMMARY, scaleSummary } from './utils/aggregations';
+import { addSummary, aggregateRows, EMPTY_SUMMARY } from './utils/aggregations';
 import { applyFilters, filtersActive } from './utils/filterUtils';
 
 import { TopBar } from './components/TopBar';
@@ -51,13 +50,14 @@ const EMPTY_OPTIONS: FilterOptions = {
   years: [],
 };
 
-type IndexedDim = 'boroughs' | 'years' | 'factors' | 'vehicleTypes';
+type IndexedDim = 'boroughs' | 'years' | 'factors' | 'vehicleTypes' | 'onStreets';
 
 function singleValueIndex(idx: DatasetIndex, dim: IndexedDim, v: string): Summary | null {
   if (dim === 'boroughs') return idx.byBorough[v] ?? null;
   if (dim === 'years') return idx.byYear[v] ?? null;
   if (dim === 'factors') return idx.byFactor[v] ?? null;
-  return idx.byVehicleType[v] ?? null;
+  if (dim === 'vehicleTypes') return idx.byVehicleType[v] ?? null;
+  return idx.byOnStreet[v] ?? null;
 }
 
 function joinIndex(
@@ -89,6 +89,14 @@ function joinIndex(
     const [yv, vv] = dimA === 'years' ? [a, b] : [b, a];
     return idx.joins.yearVehicle[yv]?.[vv] ?? null;
   }
+  if (pair === 'boroughs|onStreets') {
+    const [bv, sv] = dimA === 'boroughs' ? [a, b] : [b, a];
+    return idx.joins.boroughOnStreet[bv]?.[sv] ?? null;
+  }
+  if (pair === 'onStreets|years') {
+    const [yv, sv] = dimA === 'years' ? [a, b] : [b, a];
+    return idx.joins.yearOnStreet[yv]?.[sv] ?? null;
+  }
   return null;
 }
 
@@ -100,19 +108,20 @@ function joinIndex(
  *   - 1 dim, any number of values         → Σ byDim[v] over the values
  *   - 2 dims, any number of values        → Σ joins.<pair>[a][b] over the
  *                                            cartesian product of selections
- *   - has onStreets / injuredOnly /        → null (no index covers this;
- *     killedOnly / 3+ active dims          caller falls back to scaled sample)
+ *   - injuredOnly / killedOnly / 3+ dims  → null (caller handles via
+ *                                            severityIndexSummary or falls
+ *                                            back to baseline)
  */
 function lookupIndexed(idx: DatasetIndex | null, f: Filters): Summary | null {
   if (!idx) return null;
   if (f.injuredOnly || f.killedOnly) return null;
-  if (f.onStreets.length > 0) return null;
 
   const dims: { dim: IndexedDim; values: string[] }[] = [];
   if (f.boroughs.length) dims.push({ dim: 'boroughs', values: f.boroughs });
   if (f.years.length) dims.push({ dim: 'years', values: f.years });
   if (f.factors.length) dims.push({ dim: 'factors', values: f.factors });
   if (f.vehicleTypes.length) dims.push({ dim: 'vehicleTypes', values: f.vehicleTypes });
+  if (f.onStreets.length) dims.push({ dim: 'onStreets', values: f.onStreets });
 
   if (dims.length === 0) return idx.all;
 
@@ -143,10 +152,305 @@ function lookupIndexed(idx: DatasetIndex | null, f: Filters): Summary | null {
   return null;
 }
 
+type SeverityMode = 'killed' | 'injured';
+
+const ZERO_VICTIMS = { pedestrians: 0, cyclists: 0, motorists: 0 };
+
+function severity(s: Summary, mode: SeverityMode): number {
+  return mode === 'killed' ? s.totalKilled : s.totalInjured;
+}
+
+function cellForBoroughYear(
+  idx: DatasetIndex,
+  b: string | null,
+  y: string | null,
+): Summary | null {
+  if (b && y) return idx.joins.boroughYear[b]?.[y] ?? null;
+  if (b) return idx.byBorough[b] ?? null;
+  if (y) return idx.byYear[y] ?? null;
+  return idx.all;
+}
+
+function cellForBoroughFactor(
+  idx: DatasetIndex,
+  b: string | null,
+  f: string | null,
+): Summary | null {
+  if (b && f) return idx.joins.boroughFactor[b]?.[f] ?? null;
+  if (b) return idx.byBorough[b] ?? null;
+  if (f) return idx.byFactor[f] ?? null;
+  return idx.all;
+}
+
+function cellForYearFactor(
+  idx: DatasetIndex,
+  y: string | null,
+  f: string | null,
+): Summary | null {
+  if (y && f) return idx.joins.yearFactor[y]?.[f] ?? null;
+  if (y) return idx.byYear[y] ?? null;
+  if (f) return idx.byFactor[f] ?? null;
+  return idx.all;
+}
+
+function cellForBoroughVehicle(
+  idx: DatasetIndex,
+  b: string | null,
+  v: string | null,
+): Summary | null {
+  if (b && v) return idx.joins.boroughVehicle[b]?.[v] ?? null;
+  if (b) return idx.byBorough[b] ?? null;
+  if (v) return idx.byVehicleType[v] ?? null;
+  return idx.all;
+}
+
+function cellForYearVehicle(
+  idx: DatasetIndex,
+  y: string | null,
+  v: string | null,
+): Summary | null {
+  if (y && v) return idx.joins.yearVehicle[y]?.[v] ?? null;
+  if (y) return idx.byYear[y] ?? null;
+  if (v) return idx.byVehicleType[v] ?? null;
+  return idx.all;
+}
+
+function cellForBoroughStreet(
+  idx: DatasetIndex,
+  b: string | null,
+  s: string | null,
+): Summary | null {
+  if (b && s) return idx.joins.boroughOnStreet[b]?.[s] ?? null;
+  if (b) return idx.byBorough[b] ?? null;
+  if (s) return idx.byOnStreet[s] ?? null;
+  return idx.all;
+}
+
+function cellForYearStreet(
+  idx: DatasetIndex,
+  y: string | null,
+  s: string | null,
+): Summary | null {
+  if (y && s) return idx.joins.yearOnStreet[y]?.[s] ?? null;
+  if (y) return idx.byYear[y] ?? null;
+  if (s) return idx.byOnStreet[s] ?? null;
+  return idx.all;
+}
+
+/**
+ * Resolve a per-year severity Summary cell — the totalKilled/totalInjured
+ * count for a specific year, intersected with at most ONE of {borough,
+ * factor, vehicleType} selections. Returns null when the requested cell
+ * isn't covered by a precomputed join.
+ */
+function severityCellForYear(
+  idx: DatasetIndex,
+  y: string,
+  f: Filters,
+): Summary[] | null {
+  const otherDims =
+    (f.boroughs.length > 0 ? 1 : 0) +
+    (f.factors.length > 0 ? 1 : 0) +
+    (f.vehicleTypes.length > 0 ? 1 : 0) +
+    (f.onStreets.length > 0 ? 1 : 0);
+  if (otherDims > 1) return null;
+
+  if (otherDims === 0) {
+    const c = idx.byYear[y];
+    return c ? [c] : null;
+  }
+  if (f.boroughs.length > 0) {
+    const out: Summary[] = [];
+    for (const b of f.boroughs) {
+      const c = cellForBoroughYear(idx, b, y);
+      if (!c) return null;
+      out.push(c);
+    }
+    return out;
+  }
+  if (f.factors.length > 0) {
+    const out: Summary[] = [];
+    for (const fv of f.factors) {
+      const c = cellForYearFactor(idx, y, fv);
+      if (!c) return null;
+      out.push(c);
+    }
+    return out;
+  }
+  if (f.vehicleTypes.length > 0) {
+    const out: Summary[] = [];
+    for (const v of f.vehicleTypes) {
+      const c = cellForYearVehicle(idx, y, v);
+      if (!c) return null;
+      out.push(c);
+    }
+    return out;
+  }
+  if (f.onStreets.length > 0) {
+    const out: Summary[] = [];
+    for (const s of f.onStreets) {
+      const c = cellForYearStreet(idx, y, s);
+      if (!c) return null;
+      out.push(c);
+    }
+    return out;
+  }
+  return null;
+}
+
+/**
+ * Resolve a per-borough severity Summary list — the totalKilled/totalInjured
+ * count for a specific borough, intersected with at most ONE of {year,
+ * factor, vehicleType} selections.
+ */
+function severityCellForBorough(
+  idx: DatasetIndex,
+  b: string,
+  f: Filters,
+): Summary[] | null {
+  const otherDims =
+    (f.years.length > 0 ? 1 : 0) +
+    (f.factors.length > 0 ? 1 : 0) +
+    (f.vehicleTypes.length > 0 ? 1 : 0) +
+    (f.onStreets.length > 0 ? 1 : 0);
+  if (otherDims > 1) return null;
+
+  if (otherDims === 0) {
+    const c = idx.byBorough[b];
+    return c ? [c] : null;
+  }
+  if (f.years.length > 0) {
+    const out: Summary[] = [];
+    for (const y of f.years) {
+      const c = cellForBoroughYear(idx, b, y);
+      if (!c) return null;
+      out.push(c);
+    }
+    return out;
+  }
+  if (f.factors.length > 0) {
+    const out: Summary[] = [];
+    for (const fv of f.factors) {
+      const c = cellForBoroughFactor(idx, b, fv);
+      if (!c) return null;
+      out.push(c);
+    }
+    return out;
+  }
+  if (f.vehicleTypes.length > 0) {
+    const out: Summary[] = [];
+    for (const v of f.vehicleTypes) {
+      const c = cellForBoroughVehicle(idx, b, v);
+      if (!c) return null;
+      out.push(c);
+    }
+    return out;
+  }
+  if (f.onStreets.length > 0) {
+    const out: Summary[] = [];
+    for (const s of f.onStreets) {
+      const c = cellForBoroughStreet(idx, b, s);
+      if (!c) return null;
+      out.push(c);
+    }
+    return out;
+  }
+  return null;
+}
+
+/**
+ * Build a Summary that re-projects the filtered dataset slice onto the
+ * "fatalities only" or "injuries only" axis. Per-year and per-borough
+ * values come straight from the precomputed `totalKilled` / `totalInjured`
+ * fields on each index cell (exact). Hour and contributing-factor breakdowns
+ * proportionally scale the underlying slice — no per-hour or per-factor
+ * severity data exists in the index, so we accept that approximation.
+ *
+ * Returns null when the active filter shape can't be covered by the
+ * precomputed indexes; caller then falls back to the row-scaling path.
+ */
+function severityIndexSummary(
+  idx: DatasetIndex | null,
+  f: Filters,
+  mode: SeverityMode,
+): Summary | null {
+  if (!idx) return null;
+
+  // The non-severity dim filters. Limit to combinations the existing
+  // joins can cover so per-year/per-borough values stay exact.
+  const indexed = lookupIndexed(idx, { ...f, injuredOnly: false, killedOnly: false });
+  if (!indexed) return null;
+
+  // Per-year severity values.
+  const yearKeys = f.years.length ? f.years : Object.keys(idx.byYear);
+  const perYear: { year: number; value: number }[] = [];
+  for (const y of yearKeys) {
+    const cells = severityCellForYear(idx, y, f);
+    if (!cells) return null;
+    let v = 0;
+    for (const c of cells) v += severity(c, mode);
+    const yr = Number(y);
+    if (Number.isFinite(yr)) perYear.push({ year: yr, value: v });
+  }
+  perYear.sort((a, b) => a.year - b.year);
+
+  // Per-borough severity values.
+  const boroughKeys = f.boroughs.length ? f.boroughs : Object.keys(idx.byBorough);
+  const perBorough: { name: string; value: number }[] = [];
+  for (const b of boroughKeys) {
+    const cells = severityCellForBorough(idx, b, f);
+    if (!cells) return null;
+    let v = 0;
+    for (const c of cells) v += severity(c, mode);
+    perBorough.push({ name: b, value: v });
+  }
+  perBorough.sort((a, b) => b.value - a.value);
+
+  const sevTotal = severity(indexed, mode);
+  const crashTotal = indexed.totalCollisions;
+  const ratio = crashTotal > 0 ? sevTotal / crashTotal : 0;
+  const scale = (n: number) => Math.round(n * ratio);
+
+  const collisionsByHourData = indexed.collisionsByHourData.map((h) => ({
+    hour: h.hour,
+    collisions: scale(h.collisions),
+  }));
+
+  const topFactors = indexed.topFactors.map((tf) => ({
+    name: tf.name,
+    value: scale(tf.value),
+  }));
+
+  const indexedKilled = indexed.killed ?? ZERO_VICTIMS;
+  const indexedInjured = indexed.injured ?? ZERO_VICTIMS;
+
+  return {
+    totalCollisions: sevTotal,
+    totalInjured: mode === 'injured' ? sevTotal : 0,
+    totalKilled: mode === 'killed' ? sevTotal : 0,
+    boroughs: perBorough,
+    personTypeBreakdown: indexed.personTypeBreakdown,
+    topFactors,
+    collisionsByHourData,
+    crashesByYearData: perYear.map(({ year, value }) => ({ year, crashes: value })),
+    injured: mode === 'injured' ? indexedInjured : ZERO_VICTIMS,
+    killed: mode === 'killed' ? indexedKilled : ZERO_VICTIMS,
+  };
+}
+
 export default function App() {
   const { mode: themeMode, toggle: toggleTheme } = useTheme();
-  const { fullSummary, datasetIndex, sampleMetadata, rows, status, error, fullReady, rowsReady } =
-    useCollisionData();
+  const {
+    fullSummary,
+    datasetMetadata,
+    datasetIndex,
+    sampleMetadata,
+    rows,
+    status,
+    error,
+    fullReady,
+    rowsReady,
+  } = useCollisionData();
 
   // Two independent filter scopes (charts and table). The Overview KPIs
   // always reflect the full NYC dataset and are not filterable.
@@ -177,11 +481,10 @@ export default function App() {
   // ───────────────────────────────────────────────────────────
   // Per-scope filtered row sets and summaries
   // ───────────────────────────────────────────────────────────
-
-  const graphFilteredRows = useMemo(
-    () => (filtersActive(graphFilters.applied) ? applyFilters(rows, graphFilters.applied) : rows),
-    [rows, graphFilters.applied],
-  );
+  //
+  // Chart filters never run against rows — every supported combination
+  // resolves through the precomputed dataset index. The data table still
+  // filters its sample rows below.
 
   const filteredTableRows = useMemo(() => {
     const base = filtersActive(tableFilters.applied)
@@ -206,40 +509,35 @@ export default function App() {
   }, [rows, tableFilters.applied, searchQuery]);
 
   /**
-   * Scaling factor that maps sample-derived counts up to full-dataset
-   * magnitudes. The loaded preview is a uniform-ish subset of all NYC
-   * crashes, so the ratio (full ÷ sample) lets us extrapolate filtered
-   * sample aggregates into honest estimates for the whole dataset.
-   * 0 / null until both numbers are known; falsy values disable scaling.
-   */
-  const sampleScale =
-    fullSummary && rows.length > 0 ? fullSummary.totalCollisions / rows.length : 0;
-
-  /**
-   * Resolve the right Summary for a filter scope:
+   * Resolve the right Summary for a filter scope using only precomputed data.
    *   1. No filters → baseline (full NYC, exact)
-   *   2. Try the pre-computed index — supports multi-value 1- or 2-dim
-   *      filters by summing across cells. Exact when it hits.
-   *   3. Otherwise aggregate the loaded sample and SCALE the result up
-   *      to full-dataset magnitudes. Approximate but in the right
-   *      order of magnitude (was previously raw sample counts, which
-   *      under-reported by ~1000× — that's the inaccuracy fix).
+   *   2. Severity-only path (Fatalities only / Injuries only) → use
+   *      severityIndexSummary to re-project the matching slice onto totalKilled
+   *      or totalInjured.
+   *   3. Pure dim filters covered by 1- or 2-dim indexes → exact lookup.
+   *   4. Anything else (3+ dims, unsupported combinations) → baseline, which
+   *      keeps the displayed numbers honest. (The data table still filters its
+   *      sample rows; chart summaries fall back to full-NYC.)
    */
-  const summaryFor = (
-    f: Filters,
-    sampleRows: import('./types').CollisionRow[],
-  ): Summary => {
+  const summaryFor = (f: Filters): Summary => {
     if (!filtersActive(f)) return baselineSummary;
+    if (f.injuredOnly || f.killedOnly) {
+      const sev = severityIndexSummary(
+        datasetIndex,
+        f,
+        f.killedOnly ? 'killed' : 'injured',
+      );
+      if (sev) return sev;
+    }
     const indexed = lookupIndexed(datasetIndex, f);
     if (indexed) return indexed;
-    const raw = aggregateRows(sampleRows);
-    return sampleScale > 0 ? scaleSummary(raw, sampleScale) : raw;
+    return baselineSummary;
   };
 
   const graphSummary: Summary = useMemo(
-    () => summaryFor(graphFilters.applied, graphFilteredRows),
+    () => summaryFor(graphFilters.applied),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [graphFilters.applied, graphFilteredRows, datasetIndex, baselineSummary],
+    [graphFilters.applied, datasetIndex, baselineSummary],
   );
 
   const tableSummary: Summary = useMemo(() => {
@@ -370,12 +668,13 @@ export default function App() {
       setFullDataReportOpen(true);
       return;
     }
+    if (!datasetMetadata) {
+      alert('Data is still loading — try again in a moment.');
+      return;
+    }
     setIsGeneratingFullReport(true);
     try {
-      const response = await fetch('/data/dataset_metadata.json');
-      if (!response.ok) throw new Error('Failed to load metadata');
-      const m = (await response.json()) as DatasetMetadata;
-
+      const m = datasetMetadata;
       const report: FullDataReport = {
         totalCollisions: m.total_collisions,
         totalInjured: m.total_injured,
@@ -404,7 +703,7 @@ export default function App() {
       setFullDataReportOpen(true);
     } catch (e) {
       console.error('Error generating full data report:', e);
-      alert('Error loading complete dataset metadata.');
+      alert('Error generating report.');
     } finally {
       setIsGeneratingFullReport(false);
     }
@@ -464,6 +763,7 @@ export default function App() {
             onOpenGraphFilter={openGraphFilter}
             onToggleGraphInjured={toggleGraphInjured}
             onToggleGraphKilled={toggleGraphKilled}
+            onClearFilters={onClearGraphFilters}
             onGenerateFullReport={handleGenerateFullDataReport}
             generatingFullReport={isGeneratingFullReport}
           />
@@ -510,9 +810,9 @@ export default function App() {
               </div>
               <div className="col-12">
                 <VictimsBreakdown
-                  injured={graphSummary.injured}
-                  killed={graphSummary.killed}
-                  isFullData={graphShowingFullData}
+                  injured={baselineSummary.injured}
+                  killed={baselineSummary.killed}
+                  isFullData={true}
                 />
               </div>
             </div>
